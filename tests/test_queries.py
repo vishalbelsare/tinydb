@@ -1,5 +1,7 @@
-import pytest  # type: ignore
 import re
+
+import pytest
+
 from tinydb.queries import Query, where
 
 
@@ -33,6 +35,19 @@ def test_path_and():
     assert not query({'something': 1})
     assert hash(query)
     assert hash(query) != hash(where('value'))
+
+
+def test_callable_in_path_with_map():
+    double = lambda x: x + x
+    query = Query().value.map(double) == 10
+    assert query({'value': 5})
+    assert not query({'value': 10})
+
+
+def test_callable_in_path_with_chain():
+    rekey = lambda x: {'y': x['a'], 'z': x['b']}
+    query = Query().map(rekey).z == 10
+    assert query({'a': 5, 'b': 10})
 
 
 def test_eq():

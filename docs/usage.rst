@@ -45,12 +45,19 @@ which fields to check. Searching for nested fields is just as easy:
 >>> db.search(User.birthday.year == 1990)
 
 Not all fields can be accessed this way if the field name is not a valid Python
-identifier. In this case, you can switch to array indexing notation:
+identifier. In this case, you can switch to dict access notation:
 
 >>> # This would be invalid Python syntax:
 >>> db.search(User.country-code == 'foo')
 >>> # Use this instead:
 >>> db.search(User['country-code'] == 'foo')
+
+In addition, you can use arbitrary transform function where a field would be,
+for example:
+
+>>> from unidecode import unidecode
+>>> db.search(User.name.map(unidecode) == 'Jose')
+>>> # will match 'José' etc.
 
 The second, traditional way of constructing queries is as follows:
 
@@ -194,46 +201,48 @@ queries:
     <https://docs.python.org/3/reference/expressions.html#operator-precedence>`_
     for details.
 
+    You can compose queries dynamically by using the no-op query ``Query().noop()``.
+
 Recap
 .....
 
 Let's review the query operations we've learned:
 
-+-------------------------------------+-------------------------------------------------------------+
-| **Queries**                                                                                       |
-+-------------------------------------+-------------------------------------------------------------+
-| ``Query().field.exists()``          | Match any document where a field called ``field`` exists    |
-+-------------------------------------+-------------------------------------------------------------+
-| ``Query().field.matches(regex)``    | Match any document with the whole field matching the        |
-|                                     | regular expression                                          |
-+-------------------------------------+-------------------------------------------------------------+
-| ``Query().field.search(regex)``     | Match any document with a substring of the field matching   |
-|                                     | the regular expression                                      |
-+-------------------------------------+-------------------------------------------------------------+
-| ``Query().field.test(func, *args)`` | Matches any document for which the function returns         |
-|                                     | ``True``                                                    |
-+-------------------------------------+-------------------------------------------------------------+
-| ``Query().field.all(query | list)`` | If given a query, matches all documents where all documents |
-|                                     | in the list ``field`` match the query.                      |
-|                                     | If given a list, matches all documents where all documents  |
-|                                     | in the list ``field`` are a member of the given list        |
-+-------------------------------------+-------------------------------------------------------------+
-| ``Query().field.any(query | list)`` | If given a query, matches all documents where at least one  |
-|                                     | document in the list ``field`` match the query.             |
-|                                     | If given a list, matches all documents where at least one   |
-|                                     | documents in the list ``field`` are a member of the given   |
-|                                     | list                                                        |
-+-------------------------------------+-------------------------------------------------------------+
-| ``Query().field.one_of(list)``      | Match if the field is contained in the list                 |
-+-------------------------------------+-------------------------------------------------------------+
-| **Logical operations on queries**                                                                 |
-+-------------------------------------+-------------------------------------------------------------+
-| ``~ (query)``                       | Match documents that don't match the query                  |
-+-------------------------------------+-------------------------------------------------------------+
-| ``(query1) & (query2)``             | Match documents that match both queries                     |
-+-------------------------------------+-------------------------------------------------------------+
-| ``(query1) | (query2)``             | Match documents that match at least one of the queries      |
-+-------------------------------------+-------------------------------------------------------------+
++-------------------------------------+---------------------------------------------------------------------+
+| **Queries**                                                                                               |
++-------------------------------------+---------------------------------------------------------------------+
+| ``Query().field.exists()``          | Match any document where a field called ``field`` exists            |
++-------------------------------------+---------------------------------------------------------------------+
+| ``Query().field.matches(regex)``    | Match any document with the whole field matching the                |
+|                                     | regular expression                                                  |
++-------------------------------------+---------------------------------------------------------------------+
+| ``Query().field.search(regex)``     | Match any document with a substring of the field matching           |
+|                                     | the regular expression                                              |
++-------------------------------------+---------------------------------------------------------------------+
+| ``Query().field.test(func, *args)`` | Matches any document for which the function returns                 |
+|                                     | ``True``                                                            |
++-------------------------------------+---------------------------------------------------------------------+
+| ``Query().field.all(query | list)`` | If given a query, matches all documents where all documents         |
+|                                     | in the list ``field`` match the query.                              |
+|                                     | If given a list, matches all documents where all documents          |
+|                                     | in the list ``field`` are a member of the given list                |
++-------------------------------------+---------------------------------------------------------------------+
+| ``Query().field.any(query | list)`` | If given a query, matches all documents where at least one          |
+|                                     | document in the list ``field`` match the query.                     |
+|                                     | If given a list, matches all documents where at least one           |
+|                                     | documents in the list ``field`` are a member of the given           |
+|                                     | list                                                                |
++-------------------------------------+---------------------------------------------------------------------+
+| ``Query().field.one_of(list)``      | Match if the field is contained in the list                         |
++-------------------------------------+---------------------------------------------------------------------+
+| **Logical operations on queries**                                                                         |
++-------------------------------------+---------------------------------------------------------------------+
+| ``~ (query)``                       | Match documents that don't match the query (logical NOT)            |
++-------------------------------------+---------------------------------------------------------------------+
+| ``(query1) & (query2)``             | Match documents that match both queries (logical AND)               |
++-------------------------------------+---------------------------------------------------------------------+
+| ``(query1) | (query2)``             | Match documents that match at least one of the queries (logical OR) |
++-------------------------------------+---------------------------------------------------------------------+
 
 Handling Data
 -------------
@@ -258,6 +267,18 @@ class:
 
 >>> db.insert(Document({'name': 'John', 'age': 22}, doc_id=12))
 12
+
+The same is possible when using ``db.insert_multiple(...)``:
+
+>>> db.insert_multiple([
+    Document({'name': 'John', 'age': 22}, doc_id=12),
+    Document({'name': 'Jane', 'age': 24}, doc_id=14),
+])
+[12, 14]
+
+.. note::
+    Inserting a ``Document`` with an ID that already exists will result
+    in a ``ValueError`` being raised.
 
 Updating data
 .............
@@ -303,7 +324,7 @@ In order to perform multiple update operations at once, you can use the
 ...     ({'int': 4}, where('char') == 'b'),
 ... ])
 
-You also can use mix normal updates with update operations:
+You also can mix normal updates with update operations:
 
 >>> db.update_multiple([
 ...     ({'int': 2}, where('char') == 'a'),
@@ -442,8 +463,11 @@ True
 >>> db.remove(doc_ids=[1, 2])
 >>> db.get(doc_id=3)
 {...}
+>>> db.get(doc_ids=[1, 2])
+[{...}, {...}]
 
-Using ``doc_id`` instead of ``Query()`` again is slightly faster in operation.
+Using ``doc_id``/``doc_ids`` instead of ``Query()`` again is slightly faster
+in operation.
 
 Recap
 .....

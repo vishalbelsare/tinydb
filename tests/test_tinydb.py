@@ -1,7 +1,7 @@
 import re
 from collections.abc import Mapping
 
-import pytest  # type: ignore
+import pytest
 
 from tinydb import TinyDB, where, Query
 from tinydb.middlewares import Middleware, CachingMiddleware
@@ -61,7 +61,7 @@ def test_insert_with_duplicate_doc_id(db: TinyDB):
     db.drop_tables()
     assert db.insert({'int': 1, 'char': 'a'}) == 1
 
-    with pytest.raises(AssertionError):
+    with pytest.raises(ValueError):
         db.insert(Document({'int': 1, 'char': 'a'}, 1))
 
 
@@ -108,6 +108,20 @@ def test_insert_multiple_with_ids(db: TinyDB):
                                {'int': 1, 'char': 'c'}]) == [1, 2, 3]
 
 
+def test_insert_multiple_with_doc_ids(db: TinyDB):
+    db.drop_tables()
+
+    assert db.insert_multiple([
+        Document({'int': 1, 'char': 'a'}, 12),
+        Document({'int': 1, 'char': 'b'}, 77)
+    ]) == [12, 77]
+    assert db.get(doc_id=12) == {'int': 1, 'char': 'a'}
+    assert db.get(doc_id=77) == {'int': 1, 'char': 'b'}
+
+    with pytest.raises(ValueError):
+        db.insert_multiple([Document({'int': 1, 'char': 'a'}, 12)])
+
+
 def test_insert_invalid_type_raises_error(db: TinyDB):
     with pytest.raises(ValueError, match='Document is not a Mapping'):
         # object() as an example of a non-mapping-type
@@ -133,7 +147,7 @@ def test_insert_valid_mapping_type(db: TinyDB):
     assert db.count(where('int') == 1) == 1
 
 
-def test_cutom_mapping_type_with_json(tmpdir):
+def test_custom_mapping_type_with_json(tmpdir):
     class CustomDocument(Mapping):
         def __init__(self, data):
             self.data = data
@@ -292,6 +306,7 @@ def test_upsert(db: TinyDB):
     assert db.upsert({'int': 9, 'char': 'x'}, where('char') == 'x') == [4]
     assert db.count(where('int') == 9) == 1
 
+
 def test_upsert_by_id(db: TinyDB):
     assert len(db) == 3
 
@@ -299,6 +314,7 @@ def test_upsert_by_id(db: TinyDB):
     extant_doc = Document({'char': 'v'}, doc_id=1)
     assert db.upsert(extant_doc) == [1]
     doc = db.get(where('char') == 'v')
+    assert isinstance(doc, Document)
     assert doc is not None
     assert doc.doc_id == 1
     assert len(db) == 3
@@ -307,6 +323,7 @@ def test_upsert_by_id(db: TinyDB):
     missing_doc = Document({'int': 5, 'char': 'w'}, doc_id=5)
     assert db.upsert(missing_doc) == [5]
     doc = db.get(where('char') == 'w')
+    assert isinstance(doc, Document)
     assert doc is not None
     assert doc.doc_id == 5
     assert len(db) == 4
@@ -343,6 +360,7 @@ def test_search_no_results_cache(db: TinyDB):
 
 def test_get(db: TinyDB):
     item = db.get(where('char') == 'b')
+    assert isinstance(item, Document)
     assert item is not None
     assert item['char'] == 'b'
 
@@ -351,6 +369,11 @@ def test_get_ids(db: TinyDB):
     el = db.all()[0]
     assert db.get(doc_id=el.doc_id) == el
     assert db.get(doc_id=float('NaN')) is None  # type: ignore
+
+
+def test_get_multiple_ids(db: TinyDB):
+    el = db.all()
+    assert db.get(doc_ids=[x.doc_id for x in el]) == el
 
 
 def test_get_invalid(db: TinyDB):
@@ -681,3 +704,13 @@ def test_storage_access():
     db = TinyDB(storage=MemoryStorage)
 
     assert isinstance(db.storage, MemoryStorage)
+
+
+def test_lambda_query():
+    db = TinyDB(storage=MemoryStorage)
+    db.insert({'foo': 'bar'})
+
+    query = lambda doc: doc.get('foo') == 'bar'
+    query.is_cacheable = lambda: False
+    assert db.search(query) == [{'foo': 'bar'}]
+    assert not db._query_cache

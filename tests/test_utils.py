@@ -1,4 +1,4 @@
-import pytest  # type: ignore
+import pytest
 
 from tinydb.utils import LRUCache, freeze, FrozenDict
 
@@ -27,6 +27,14 @@ def test_lru_cache_set_multiple():
     cache["a"] = 4
 
     assert cache.lru == ["a"]
+
+
+def test_lru_cache_set_update():
+    cache = LRUCache(capacity=3)
+    cache["a"] = 1
+    cache["a"] = 2
+
+    assert cache["a"] == 2
 
 
 def test_lru_cache_get():

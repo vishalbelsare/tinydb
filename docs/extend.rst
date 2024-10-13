@@ -107,7 +107,7 @@ Now let's implement that:
         def __init__(self, storage_cls):
             # Any middleware *has* to call the super constructor
             # with storage_cls
-            super(self).__init__(storage_cls)  # (1)
+            super().__init__(storage_cls)  # (1)
 
         def read(self):
             data = self.storage.read()
@@ -115,7 +115,7 @@ Now let's implement that:
             for table_name in data:
                 table_data = data[table_name]
 
-                for doc_id in table:
+                for doc_id in table_data:
                     item = table_data[doc_id]
 
                     if item == {}:
@@ -127,7 +127,7 @@ Now let's implement that:
             for table_name in data:
                 table_data = data[table_name]
 
-                for doc_id in table:
+                for doc_id in table_data:
                     item = table_data[doc_id]
 
                     if item == {}:
@@ -157,7 +157,7 @@ Use hooks and overrides
 .. _extend_hooks:
 
 There are cases when neither creating a custom storage nor using a custom
-middlware will allow you to adapt TinyDB in the way you need. In this case
+middleware will allow you to adapt TinyDB in the way you need. In this case
 you can modify TinyDB's behavior by using predefined hooks and override points.
 For example you can configure the name of the default table by setting
 ``TinyDB.default_table_name``:

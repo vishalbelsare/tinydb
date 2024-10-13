@@ -7,17 +7,92 @@ Version Numbering
 TinyDB follows the SemVer versioning guidelines. For more information,
 see `semver.org <http://semver.org/>`_
 
+.. note:: When new methods are added to the ``Query`` API, this may
+          result in breaking existing code that uses the property syntax
+          to access document fields (e.g. ``Query().some.nested.field``)
+          where the field name is equal to the newly added query method.
+          Thus, breaking changes may occur in feature releases even though
+          they don't change the public API in a backwards-incompatible
+          manner.
+
+          To prevent this from happening, one can use the dict access
+          syntax (``Query()['some']['nested']['field']``) that will
+          not break even when new methods are added to the ``Query`` API.
+
 unreleased
 ^^^^^^^^^^
 
 - *nothing yet*
+
+v4.8.2 (2024-10-12)
+^^^^^^^^^^^^^^^^^^^
+
+- Fix: Correctly update query cache when search results have changed
+  (see `issue 560 <https://github.com/msiemens/tinydb/issues/560>`_).
+
+v4.8.1 (2024-10-07)
+^^^^^^^^^^^^^^^^^^^
+
+- Feature: Allow persisting empty tables
+  (see `pull request 518 <https://github.com/msiemens/tinydb/pull/518>`_).
+- Fix: Make replacing ``doc_id`` type work properly
+  (see `issue 545 <https://github.com/msiemens/tinydb/issues/545>`_).
+
+v4.8.0 (2023-06-12)
+^^^^^^^^^^^^^^^^^^^
+
+- Feature: Allow retrieve multiple documents by document ID using
+  ``Table.get(doc_ids=[...])``
+  (see `pull request 504 <https://github.com/msiemens/tinydb/pull/504>`_).
+
+v4.7.1 (2023-01-14)
+^^^^^^^^^^^^^^^^^^^
+
+- Improvement: Improve typing annotations
+  (see `pull request 477 <https://github.com/msiemens/tinydb/pull/477>`_).
+- Improvement: Fix some typos in the documentation
+  (see `pull request 479 <https://github.com/msiemens/tinydb/pull/479>`_
+  and `pull request 498 <https://github.com/msiemens/tinydb/pull/498>`_).
+
+v4.7.0 (2022-02-19)
+^^^^^^^^^^^^^^^^^^^
+
+- Feature: Allow inserting ``Document`` instances using ``Table.insert_multiple``
+  (see `pull request 455 <https://github.com/msiemens/tinydb/pull/455>`_).
+- Performance: Only convert document IDs of a table when returning documents.
+  This improves performance the ``Table.count`` and ``Table.get`` operations
+  and also for ``Table.search`` when only returning a few documents
+  (see `pull request 460 <https://github.com/msiemens/tinydb/pull/460>`_).
+- Internal change: Run all ``Table`` tests ``JSONStorage`` in addition to
+  ``MemoryStorage``.
+
+v4.6.1 (2022-01-18)
+^^^^^^^^^^^^^^^^^^^
+
+- Fix: Make using callables as queries work again
+  (see `issue 454 <https://github.com/msiemens/tinydb/issues/454>`__)
+
+v4.6.0 (2022-01-17)
+^^^^^^^^^^^^^^^^^^^
+
+- Feature: Add `map()` query operation to apply a transformation
+  to a document or field when evaluating a query
+  (see `pull request 445 <https://github.com/msiemens/tinydb/pull/445>`_).
+  **Note**: This may break code that queries for a field named ``map``
+  using the ``Query`` APIs property access syntax
+- Feature: Add support for `typing-extensions <https://pypi.org/project/typing-extensions/>`_
+  v4
+- Documentation: Fix a couple of typos in the documentation (see
+  `pull request 446 <https://github.com/msiemens/tinydb/pull/446>`_,
+  `pull request 449 <https://github.com/msiemens/tinydb/pull/449>`_ and
+  `pull request 453 <https://github.com/msiemens/tinydb/pull/453>`_)
 
 v4.5.2 (2021-09-23)
 ^^^^^^^^^^^^^^^^^^^
 
 - Fix: Make ``Table.delete()``'s argument priorities consistent with
   other table methods. This means that if you pass both ``cond`` as
-  well as ``doc_ids`` to ``Table.delete()``, the latter will be prefered
+  well as ``doc_ids`` to ``Table.delete()``, the latter will be preferred
   (see `issue 424 <https://github.com/msiemens/tinydb/issues/424>`__)
 
 v4.5.1 (2021-07-17)
@@ -284,7 +359,7 @@ v3.4.1 (2017-08-23)
 v3.4.0 (2017-08-08)
 ^^^^^^^^^^^^^^^^^^^
 
-- Add new update operations: ``add(key, value)``, ``substract(key, value)``,
+- Add new update operations: ``add(key, value)``, ``subtract(key, value)``,
   and ``set(key, value)``
   (see `pull request #145 <https://github.com/msiemens/tinydb/pull/145>`_).
 
@@ -380,7 +455,7 @@ v3.0.0 (2015-11-13)
          notation can be used: ``where('a.b.c')`` is now
          ``Query()['a.b.c']``.
 
-   -  Checking for the existence of a key has to be done explicitely:
+   -  Checking for the existence of a key has to be done explicitly:
       ``where('foo').exists()``.
 
 -  Migrations from v1 to v2 have been removed.
